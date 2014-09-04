@@ -1,0 +1,9 @@
+sensor:
+  min_distance: 0.9
+  max_distance: 120.0
+  device_name: "Velodyne HDL-64E S2"
+ros:
+  queue_depth: 100
+  velodyne_compressed_data_topic_name: "/velodyne/binary_snappy"
+  num_data_packets: 348 # approximate number of packets per revolution (10 Hz)
+  point_cloud_topic_name: "point_cloud"
