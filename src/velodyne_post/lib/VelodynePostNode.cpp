@@ -77,90 +77,31 @@ namespace velodyne {
   }
 
   void VelodynePostNode::publish() {
-    sensor_msgs::PointCloudPtr rosPointCloud(new sensor_msgs::PointCloud);
-    rosPointCloud->header.stamp = ros;
-    rosPointCloud->header.frame_id = _frameId;
-    rosPointCloud->header.seq = _pointCloudCounter++;
-//    const size_t numPoints = pointCloud.getSize();
-//    rosCloud->points.reserve(numPoints);
-//    rosCloud->channels.resize(1);
-//    rosCloud->channels[0].name = "intensity";
-//    rosCloud->channels[0].values.reserve(numPoints);
-//    for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
-//        ++it) {
-//      geometry_msgs::Point32 rosPoint;
-//      rosPoint.x = it->mX;
-//      rosPoint.y = it->mY;
-//      rosPoint.z = it->mZ;
-//      rosCloud->points.push_back(rosPoint);
-//      rosCloud->channels[0].values.push_back(it->mIntensity);
-//    }
-
-
+    VdynePointCloud pointCloud;
     for (auto it = _dataPackets.cbegin(); it != _dataPackets.cend(); ++it) {
-      VdynePointCloud pointCloud;
       Converter::toPointCloud(*it, *_calibration, pointCloud, _minDistance,
         _maxDistance);
     }
+    sensor_msgs::PointCloudPtr rosPointCloud(new sensor_msgs::PointCloud);
+    rosPointCloud->header.stamp = ros::Time(_dataPackets.front().getTimestamp()
+      + (_dataPackets.back().getTimestamp() -
+      _dataPackets.front().getTimestamp()) * 0.5);
+    rosPointCloud->header.frame_id = _frameId;
+    rosPointCloud->header.seq = _pointCloudCounter++;
+    const size_t numPoints = pointCloud.getSize();
+    rosPointCloud->points.reserve(numPoints);
+    for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
+        ++it) {
+      geometry_msgs::Point32 rosPoint;
+      rosPoint.x = it->mX;
+      rosPoint.y = it->mY;
+      rosPoint.z = it->mZ;
+      rosPointCloud->points.push_back(rosPoint);
+    }
     sensor_msgs::PointCloud2Ptr rosPointCloud2(new sensor_msgs::PointCloud2);
+    convertPointCloudToPointCloud2 (*rosPointCloud, *rosPointCloud2);
     _pointCloudPublisher.publish(rosPointCloud2);
   }
-
-//  void VelodyneNode::publishDataPacket(const ros::Time& timestamp,
-//      const DataPacket& dp) {
-//    VdynePointCloud pointCloud;
-//    Converter::toPointCloud(dp, *_calibration, pointCloud, _minDistance,
-//      _maxDistance);
-//    sensor_msgs::PointCloudPtr rosCloud(new sensor_msgs::PointCloud);
-//    rosCloud->header.stamp = timestamp;
-//    rosCloud->header.frame_id = _frameId;
-//    rosCloud->header.seq = _dataPacketCounter;
-//    const size_t numPoints = pointCloud.getSize();
-//    rosCloud->points.reserve(numPoints);
-//    rosCloud->channels.resize(1);
-//    rosCloud->channels[0].name = "intensity";
-//    rosCloud->channels[0].values.reserve(numPoints);
-//    for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
-//        ++it) {
-//      geometry_msgs::Point32 rosPoint;
-//      rosPoint.x = it->mX;
-//      rosPoint.y = it->mY;
-//      rosPoint.z = it->mZ;
-//      rosCloud->points.push_back(rosPoint);
-//      rosCloud->channels[0].values.push_back(it->mIntensity);
-//    }
-//    _pointCloudPublisher.publish(rosCloud);
-//    velodyne::DataPacketMsgPtr dataPacketMsg(new velodyne::DataPacketMsg);
-//    dataPacketMsg->header.stamp = timestamp;
-//    dataPacketMsg->header.frame_id = _frameId;
-//    dataPacketMsg->header.seq = _dataPacketCounter;
-//    for (size_t i = 0; i < DataPacket::mDataChunkNbr; ++i) {
-//      const DataPacket::DataChunk& dataChunk = dp.getDataChunk(i);
-//      dataPacketMsg->dataChunks[i].headerInfo = dataChunk.mHeaderInfo;
-//      dataPacketMsg->dataChunks[i].rotationalInfo = dataChunk.mRotationalInfo;
-//      for (size_t j = 0; j < DataPacket::DataChunk::mLasersPerPacket; ++j) {
-//        dataPacketMsg->dataChunks[i].laserData[j].distance =
-//          dataChunk.mLaserData[j].mDistance;
-//        dataPacketMsg->dataChunks[i].laserData[j].intensity =
-//          dataChunk.mLaserData[j].mIntensity;
-//      }
-//    }
-//    _dataPacketPublisher.publish(dataPacketMsg);
-//    velodyne::BinarySnappyMsgPtr binarySnappyMsg(new velodyne::BinarySnappyMsg);
-//    binarySnappyMsg->header.stamp = timestamp;
-//    binarySnappyMsg->header.frame_id = _frameId;
-//    binarySnappyMsg->header.seq = _dataPacketCounter++;
-//    std::ostringstream binaryStream;
-//    dp.writeBinary(binaryStream);
-//    std::string binaryStreamSnappy;
-//    snappy::Compress(binaryStream.str().data(),
-//      binaryStream.str().size(), &binaryStreamSnappy);
-//    binarySnappyMsg->data.resize(binaryStreamSnappy.size());
-//    std::copy(binaryStreamSnappy.begin(), binaryStreamSnappy.end(),
-//      binarySnappyMsg->data.begin());
-//    _binarySnappyPublisher.publish(binarySnappyMsg);
-//    _dpFreq->tick();
-//  }
 
   void VelodynePostNode::spin() {
     std::ifstream calibFile(_calibFileName);

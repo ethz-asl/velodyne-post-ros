@@ -1,3 +1,9 @@
+velodyne-post-ros (0.1-2) trusty; urgency=low
+
+  * First working version.
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Fri, 05 Sep 2014 13:35:12 +0200
+
 velodyne-post-ros (0.1-1) precise; urgency=low
 
   * First draft.
