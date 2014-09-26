@@ -22,6 +22,8 @@
 #include <iomanip>
 #include <cstring>
 
+#include <boost/make_shared.hpp>
+
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/point_cloud_conversion.h>
@@ -82,7 +84,7 @@ namespace velodyne {
       Converter::toPointCloud(*it, *_calibration, pointCloud, _minDistance,
         _maxDistance);
     }
-    sensor_msgs::PointCloudPtr rosPointCloud(new sensor_msgs::PointCloud);
+    auto rosPointCloud = boost::make_shared<sensor_msgs::PointCloud>();
     rosPointCloud->header.stamp = ros::Time(_dataPackets.front().getTimestamp()
       + (_dataPackets.back().getTimestamp() -
       _dataPackets.front().getTimestamp()) * 0.5);
@@ -98,14 +100,14 @@ namespace velodyne {
       rosPoint.z = it->mZ;
       rosPointCloud->points.push_back(rosPoint);
     }
-    sensor_msgs::PointCloud2Ptr rosPointCloud2(new sensor_msgs::PointCloud2);
+    auto rosPointCloud2 = boost::make_shared<sensor_msgs::PointCloud2>();
     convertPointCloudToPointCloud2 (*rosPointCloud, *rosPointCloud2);
     _pointCloudPublisher.publish(rosPointCloud2);
   }
 
   void VelodynePostNode::spin() {
     std::ifstream calibFile(_calibFileName);
-    _calibration.reset(new Calibration());
+    _calibration = std::make_shared<Calibration>();
     try {
       calibFile >> *_calibration;
     }
