@@ -83,6 +83,8 @@ namespace velodyne {
       dataPacket.setDataChunk(dataChunk, i);
     }
     dataPacket.setTimestamp(msg->header.stamp.toSec());
+    dataPacket.setSpinCount(msg->spinCount);
+    dataPacket.setReserved(msg->reserved);
     _dataPackets.push_back(dataPacket);
     if (_dataPackets.size() == _numDataPackets) {
       publish();
