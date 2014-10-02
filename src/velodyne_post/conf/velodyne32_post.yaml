@@ -4,6 +4,8 @@ sensor:
   device_name: "Velodyne HDL-32E"
 ros:
   queue_depth: 100
-  velodyne_compressed_data_topic_name: "/velodyne/binary_snappy"
+  velodyne_binary_snappy_topic_name: "/velodyne/binary_snappy"
+  velodyne_data_packet_topic_name: "/velodyne/data_packet"
+  use_binary_snappy: true
   num_data_packets: 174 # approximate number of packets per revolution (10 Hz)
   point_cloud_topic_name: "point_cloud"

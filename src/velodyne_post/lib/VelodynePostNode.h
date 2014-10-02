@@ -31,6 +31,7 @@
 #include <ros/ros.h>
 
 #include <velodyne/BinarySnappyMsg.h>
+#include <velodyne/DataPacketMsg.h>
 
 class Calibration;
 class DataPacket;
@@ -72,8 +73,12 @@ namespace velodyne {
     /** \name Protected methods
       @{
       */
-    /// Velodyne callback
-    void velodyneCallback(const velodyne::BinarySnappyMsgConstPtr& msg);
+    /// Velodyne callback for binary snappy
+    void velodyneBinarySnappyCallback(const velodyne::BinarySnappyMsgConstPtr&
+      msg);
+    /// Velodyne callback for data packet
+    void velodyneDataPacketCallback(const velodyne::DataPacketMsgConstPtr&
+      msg);
     /// Retrieves parameters
     void getParameters();
     /// Publishes the currently stored data
@@ -86,8 +91,10 @@ namespace velodyne {
       */
     /// ROS node handle
     ros::NodeHandle _nodeHandle;
-    /// Velodyne data subscriber
-    ros::Subscriber _velodyneSubscriber;
+    /// Velodyne binary snappy subscriber
+    ros::Subscriber _velodyneBinarySnappySubscriber;
+    /// Velodyne data packet subscriber
+    ros::Subscriber _velodyneDataPacketSubscriber;
     /// Velodyne calibration
     std::shared_ptr<Calibration> _calibration;
     /// Calibration file name
@@ -98,8 +105,10 @@ namespace velodyne {
     double _minDistance;
     /// Max distance for conversions
     double _maxDistance;
-    /// Velodyne compressed data topic name
-    std::string _velodyneCompressedDataTopicName;
+    /// Velodyne binary snappy topic name
+    std::string _velodyneBinarySnappyTopicName;
+    /// Velodyne data packet topic name
+    std::string _velodyneDataPacketTopicName;
     /// Vector for queuing the data packets
     std::vector<DataPacket> _dataPackets;
     /// Queue size for receiving messages
@@ -114,6 +123,8 @@ namespace velodyne {
     std::string _frameId;
     /// Point cloud counter
     long _pointCloudCounter;
+    /// Use binary snappy
+    bool _useBinarySnappy;
     /** @}
       */
 
