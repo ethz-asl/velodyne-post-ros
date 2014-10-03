@@ -167,7 +167,7 @@ namespace velodyne {
     _nodeHandle.param<std::string>("ros/velodyne_binary_snappy_topic_name",
       _velodyneBinarySnappyTopicName, "/velodyne/binary_snappy");
     _nodeHandle.param<std::string>("ros/velodyne_data_packet_topic_name",
-      _velodyneBinarySnappyTopicName, "/velodyne/data_packet");
+      _velodyneDataPacketTopicName, "/velodyne/data_packet");
     _nodeHandle.param<std::string>("ros/point_cloud_topic_name",
       _pointCloudTopicName, "point_cloud");
     _nodeHandle.param<bool>("ros/use_binary_snappy", _useBinarySnappy, true);
