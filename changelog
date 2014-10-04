@@ -1,3 +1,9 @@
+velodyne-post-ros (0.1-9) precise; urgency=low
+
+  * deploy Remo's patch
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Sat, 04 Oct 2014 13:56:44 +0200
+
 velodyne-post-ros (0.1-7) trusty; urgency=medium
 
   * adding spin count and reserved 
