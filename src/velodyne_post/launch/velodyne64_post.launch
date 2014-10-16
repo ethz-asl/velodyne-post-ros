@@ -1,6 +1,9 @@
 <launch>
-  <node name="velodyne_post" pkg="velodyne_post" type="velodyne_post_node" output="screen" respawn="true">
+  <arg name="node_name" default="velodyne_post"/>
+  <arg name="use_binary_snappy" default="true"/>
+  <node name="$(arg node_name)" pkg="velodyne_post" type="velodyne_post_node" output="screen" respawn="true">
     <rosparam command="load" file="$(find velodyne_post)/etc/velodyne64_post.yaml"/>
     <param name="sensor/calibration_file" value="$(find velodyne_post)/etc/calib-HDL-64E.dat"/>
+    <param name="ros/use_binary_snappy" value="$(arg use_binary_snappy)"/>
   </node>
 </launch>
