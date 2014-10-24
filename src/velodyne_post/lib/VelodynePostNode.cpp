@@ -21,6 +21,7 @@
 #include <sstream>
 #include <iomanip>
 #include <cstring>
+#include <cmath>
 
 #include <boost/make_shared.hpp>
 
@@ -82,7 +83,7 @@ namespace velodyne {
       }
       dataPacket.setDataChunk(dataChunk, i);
     }
-    dataPacket.setTimestamp(msg->header.stamp.toSec());
+    dataPacket.setTimestamp(msg->header.stamp.toNSec());
     dataPacket.setSpinCount(msg->spinCount);
     dataPacket.setReserved(msg->reserved);
     _dataPackets.push_back(dataPacket);
@@ -102,6 +103,7 @@ namespace velodyne {
     DataPacket dataPacket;
     std::istringstream binaryStream(uncompressedData);
     dataPacket.readBinary(binaryStream);
+    dataPacket.setTimestamp(msg->header.stamp.toNSec());
     _dataPackets.push_back(dataPacket);
     if (_dataPackets.size() == _numDataPackets) {
       publish();
@@ -118,9 +120,9 @@ namespace velodyne {
       }
       auto rosPointCloud = boost::make_shared<sensor_msgs::PointCloud>();
       rosPointCloud->header.stamp =
-        ros::Time(_dataPackets.front().getTimestamp()
-        + (_dataPackets.back().getTimestamp() -
-        _dataPackets.front().getTimestamp()) * 0.5);
+        ros::Time().fromNSec(_dataPackets.front().getTimestamp()
+        + std::round((_dataPackets.back().getTimestamp() -
+        _dataPackets.front().getTimestamp()) * 0.5));
       rosPointCloud->header.frame_id = _frameId;
       rosPointCloud->header.seq = _pointCloudCounter++;
       const size_t numPoints = pointCloud.getSize();

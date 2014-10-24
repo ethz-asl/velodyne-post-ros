@@ -1,3 +1,9 @@
+velodyne-post-ros (0.1-11) precise; urgency=low
+
+  * changing timestamps from double to integer 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Fri, 24 Oct 2014 11:21:22 +0200
+
 velodyne-post-ros (0.1-10) precise; urgency=low
 
   * command line parameters for node name and binary snappy
