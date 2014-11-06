@@ -56,6 +56,10 @@ namespace velodyne {
     VelodynePostNode(VelodynePostNode&& other) = delete;
     /// Move assignment operator
     VelodynePostNode& operator = (VelodynePostNode&& other) = delete;
+    /// Update the subscription of the velodyne point cloud (subscribe only if there is a subscriber to the VelodynePostNode output)
+    void updatePointCloudSubscription();
+    /// Sleep to achieve desired subscription updater rate
+    void sleep();
     /// Destructor
     virtual ~VelodynePostNode();
     /** @}
@@ -81,6 +85,8 @@ namespace velodyne {
       msg);
     /// Retrieves parameters
     void getParameters();
+    /// Load calibration file
+    void loadCalibrationFile();
     /// Publishes the currently stored data
     void publish();
     /** @}
@@ -91,6 +97,10 @@ namespace velodyne {
       */
     /// ROS node handle
     ros::NodeHandle _nodeHandle;
+    /// Rate
+    ros::Rate _rate;
+    /// Velodyne subscriber is currently shut down
+    bool _velodyneSubscriberIsShutDown;
     /// Velodyne binary snappy subscriber
     ros::Subscriber _velodyneBinarySnappySubscriber;
     /// Velodyne data packet subscriber

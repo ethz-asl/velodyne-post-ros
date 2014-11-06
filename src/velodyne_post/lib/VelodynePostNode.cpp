@@ -45,6 +45,7 @@ namespace velodyne {
 
   VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh) :
       _nodeHandle(nh),
+      _velodyneSubscriberIsShutDown(false),
       _pointCloudCounter(0) {
     getParameters();
     if (_useBinarySnappy)
@@ -58,6 +59,7 @@ namespace velodyne {
     _pointCloudPublisher = _nodeHandle.advertise<sensor_msgs::PointCloud2>(
       _pointCloudTopicName, _queueDepth);
     _dataPackets.reserve(_numDataPackets);
+    loadCalibrationFile();
   }
 
   VelodynePostNode::~VelodynePostNode() {
@@ -111,6 +113,17 @@ namespace velodyne {
     }
   }
 
+  void VelodynePostNode::loadCalibrationFile() {
+    std::ifstream calibFile(_calibFileName);
+    _calibration = std::make_shared<Calibration>();
+    try {
+      calibFile >> *_calibration;
+    }
+    catch (const IOException& e) {
+      ROS_WARN_STREAM("IOException: " << e.what());
+    }
+  }
+
   void VelodynePostNode::publish() {
     if (_pointCloudPublisher.getNumSubscribers() > 0) {
       VdynePointCloud pointCloud;
@@ -142,15 +155,39 @@ namespace velodyne {
   }
 
   void VelodynePostNode::spin() {
-    std::ifstream calibFile(_calibFileName);
-    _calibration = std::make_shared<Calibration>();
-    try {
-      calibFile >> *_calibration;
-    }
-    catch (const IOException& e) {
-      ROS_WARN_STREAM("IOException: " << e.what());
-    }
     ros::spin();
+  }
+
+  void VelodynePostNode::updatePointCloudSubscription() {
+    if (_velodyneSubscriberIsShutDown) {
+      // subscribe if subscribers are around
+      if (_pointCloudPublisher.getNumSubscribers() > 0u) {
+        if (_useBinarySnappy) {
+          _velodyneBinarySnappySubscriber =
+            _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
+            _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this);
+        } else {
+          _velodyneDataPacketSubscriber =
+            _nodeHandle.subscribe(_velodyneDataPacketTopicName,
+            _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this);
+        }
+        _velodyneSubscriberIsShutDown = false;
+      }
+    } else {
+      // unsubscribe if no subscribers are around
+      if (_pointCloudPublisher.getNumSubscribers() == 0u) {
+        if (_useBinarySnappy) {
+          _velodyneBinarySnappySubscriber.shutdown();
+        } else {
+          _velodyneDataPacketSubscriber.shutdown();
+        }
+        _velodyneSubscriberIsShutDown = true;
+      }
+    }
+  }
+
+  void VelodynePostNode::sleep() {
+    _rate.sleep();
   }
 
   void VelodynePostNode::getParameters() {
@@ -178,6 +215,10 @@ namespace velodyne {
       _nodeHandle.param<int>("ros/num_data_packets", _numDataPackets, 348);
     else if (_deviceName == "Velodyne HDL-32E")
       _nodeHandle.param<int>("ros/num_data_packets", _numDataPackets, 174);
+
+    double subscriberUpdateFrequency;
+    _nodeHandle.param<double>("ros/subscriber_update_frequency", subscriberUpdateFrequency, 10);
+    _rate = ros::Rate(subscriberUpdateFrequency);
   }
 
 }
