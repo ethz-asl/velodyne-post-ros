@@ -47,14 +47,21 @@ namespace velodyne {
       _nodeHandle(nh),
       _pointCloudCounter(0) {
     getParameters();
+    ros::TransportHints transportHints;
+    if (_transportType == "udp")
+      transportHints.unreliable().reliable();
+    else if (_transportType == "tcp")
+      transportHints.reliable().unreliable();
+    else
+      ROS_ERROR_STREAM("Transport type not recognized.");
     if (_useBinarySnappy)
       _velodyneBinarySnappySubscriber =
         _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this);
+        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this, transportHints);
     else
       _velodyneDataPacketSubscriber =
         _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this);
+        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this, transportHints);
     _pointCloudPublisher = _nodeHandle.advertise<sensor_msgs::PointCloud2>(
       _pointCloudTopicName, _queueDepth);
     _dataPackets.reserve(_numDataPackets);
@@ -174,6 +181,7 @@ namespace velodyne {
       _pointCloudTopicName, "point_cloud");
     _nodeHandle.param<bool>("ros/use_binary_snappy", _useBinarySnappy, true);
     _nodeHandle.param<int>("ros/queue_depth", _queueDepth, 100);
+    _nodeHandle.param<std::string>("ros/transport_type", _transportType, "udp");
     if (_deviceName == "Velodyne HDL-64E S2")
       _nodeHandle.param<int>("ros/num_data_packets", _numDataPackets, 348);
     else if (_deviceName == "Velodyne HDL-32E")
