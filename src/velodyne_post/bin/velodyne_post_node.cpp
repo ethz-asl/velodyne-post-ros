@@ -32,7 +32,7 @@ int main(int argc, char** argv) {
     while (ros::ok()) {
       vn.updatePointCloudSubscription();
       vn.sleep();
-      ros::spinOnce();
+      vn.spinOnce();
     }
   }
   catch (const std::exception& e) {

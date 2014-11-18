@@ -56,10 +56,6 @@ namespace velodyne {
     VelodynePostNode(VelodynePostNode&& other) = delete;
     /// Move assignment operator
     VelodynePostNode& operator = (VelodynePostNode&& other) = delete;
-    /// Update the subscription of the velodyne point cloud (subscribe only if there is a subscriber to the VelodynePostNode output)
-    void updatePointCloudSubscription();
-    /// Sleep to achieve desired subscription updater rate
-    void sleep();
     /// Destructor
     virtual ~VelodynePostNode();
     /** @}
@@ -68,8 +64,12 @@ namespace velodyne {
     /** \name Methods
       @{
       */
+    /// Update the subscription of the velodyne point cloud (subscribe only if there is a subscriber to the VelodynePostNode output)
+    void updatePointCloudSubscription();
+    /// Sleep to achieve desired subscription updater rate
+    void sleep();
     /// Spin once
-    void spin();
+    void spinOnce();
     /** @}
       */
 

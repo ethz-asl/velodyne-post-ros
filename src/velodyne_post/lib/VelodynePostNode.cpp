@@ -45,6 +45,7 @@ namespace velodyne {
 
   VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh) :
       _nodeHandle(nh),
+      _rate(0),
       _velodyneSubscriberIsShutDown(false),
       _pointCloudCounter(0) {
     getParameters();
@@ -160,8 +161,8 @@ namespace velodyne {
     }
   }
 
-  void VelodynePostNode::spin() {
-    ros::spin();
+  void VelodynePostNode::spinOnce() {
+    ros::spinOnce();
   }
 
   void VelodynePostNode::updatePointCloudSubscription() {
