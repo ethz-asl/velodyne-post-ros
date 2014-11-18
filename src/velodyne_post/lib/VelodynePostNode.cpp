@@ -49,19 +49,21 @@ namespace velodyne {
     getParameters();
     ros::TransportHints transportHints;
     if (_transportType == "udp")
-      transportHints.unreliable().reliable();
+      transportHints = ros::TransportHints().unreliable().reliable();
     else if (_transportType == "tcp")
-      transportHints.reliable().unreliable();
+      transportHints = ros::TransportHints().reliable().unreliable();
     else
-      ROS_ERROR_STREAM("Transport type not recognized.");
+      ROS_ERROR_STREAM("Unknown transport type: " << _transportType);
     if (_useBinarySnappy)
       _velodyneBinarySnappySubscriber =
         _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this, transportHints);
+        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this,
+        transportHints);
     else
       _velodyneDataPacketSubscriber =
         _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this, transportHints);
+        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this,
+        transportHints);
     _pointCloudPublisher = _nodeHandle.advertise<sensor_msgs::PointCloud2>(
       _pointCloudTopicName, _queueDepth);
     _dataPackets.reserve(_numDataPackets);
