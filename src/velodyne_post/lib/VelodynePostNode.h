@@ -135,6 +135,8 @@ namespace velodyne {
     long _pointCloudCounter;
     /// Use binary snappy
     bool _useBinarySnappy;
+    /// Transport type (tcp or udp)
+    std::string _transportType;
     /** @}
       */
 
