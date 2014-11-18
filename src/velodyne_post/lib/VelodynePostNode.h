@@ -137,6 +137,8 @@ namespace velodyne {
     bool _useBinarySnappy;
     /// Transport type (tcp or udp)
     std::string _transportType;
+    /// Transport hints
+    ros::TransportHints _transportHints;
     /** @}
       */
 

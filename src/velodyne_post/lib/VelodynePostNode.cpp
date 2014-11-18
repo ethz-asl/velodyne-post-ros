@@ -48,21 +48,20 @@ namespace velodyne {
       _velodyneSubscriberIsShutDown(false),
       _pointCloudCounter(0) {
     getParameters();
-    ros::TransportHints transportHints;
     if (_transportType == "udp")
-      transportHints.unreliable().reliable();
+      _transportHints.unreliable().reliable();
     else if (_transportType == "tcp")
-      transportHints.reliable().unreliable();
+      _transportHints.reliable().unreliable();
     else
       ROS_ERROR_STREAM("Transport type not recognized.");
     if (_useBinarySnappy)
       _velodyneBinarySnappySubscriber =
         _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this, transportHints);
+        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this, _transportHints);
     else
       _velodyneDataPacketSubscriber =
         _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this, transportHints);
+        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this, _transportHints);
     _pointCloudPublisher = _nodeHandle.advertise<sensor_msgs::PointCloud2>(
       _pointCloudTopicName, _queueDepth);
     _dataPackets.reserve(_numDataPackets);
@@ -172,11 +171,11 @@ namespace velodyne {
         if (_useBinarySnappy) {
           _velodyneBinarySnappySubscriber =
             _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-            _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this);
+            _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this, _transportHints);
         } else {
           _velodyneDataPacketSubscriber =
             _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-            _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this);
+            _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this, _transportHints);
         }
         _velodyneSubscriberIsShutDown = false;
       }
