@@ -49,9 +49,9 @@ namespace velodyne {
     getParameters();
     ros::TransportHints transportHints;
     if (_transportType == "udp")
-      transportHints.unreliable().reliable();
+      transportHints.unreliable().tcpNoDelay();
     else if (_transportType == "tcp")
-      transportHints.reliable().unreliable();
+      transportHints.tcpNoDelay().unreliable();
     else
       ROS_ERROR_STREAM("Transport type not recognized.");
     if (_useBinarySnappy)
