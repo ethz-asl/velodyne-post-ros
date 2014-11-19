@@ -10,3 +10,4 @@ ros:
   num_data_packets: 174 # approximate number of packets per revolution (10 Hz)
   point_cloud_topic_name: "point_cloud"
   transport_type: "udp" # tcp or udp
+  subscription_updater_rate: 1.0

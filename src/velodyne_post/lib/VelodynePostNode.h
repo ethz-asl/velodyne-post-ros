@@ -64,8 +64,12 @@ namespace velodyne {
     /** \name Methods
       @{
       */
+    /// Update subscription (subscribe only when subscriber is around)
+    void updateSubscription();
+    /// Sleep to achieve desired rate
+    void sleep();
     /// Spin once
-    void spin();
+    void spinOnce();
     /** @}
       */
 
@@ -125,8 +129,14 @@ namespace velodyne {
     long _pointCloudCounter;
     /// Use binary snappy
     bool _useBinarySnappy;
+    /// Transport hints
+    ros::TransportHints _transportHints;
     /// Transport type (tcp or udp)
     std::string _transportType;
+    /// Subscription is active
+    bool _subscriptionIsActive;
+    /// Node running rate
+    ros::Rate _rate;
     /** @}
       */
 
