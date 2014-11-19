@@ -64,7 +64,7 @@ namespace velodyne {
     /** \name Methods
       @{
       */
-    /// Spin once
+    /// Spin
     void spin();
     /** @}
       */
@@ -81,6 +81,8 @@ namespace velodyne {
       msg);
     /// Retrieves parameters
     void getParameters();
+    /// Update subscription (subscribe only when subscriber is around)
+    void updateSubscription(const ros::TimerEvent& event);
     /// Publishes the currently stored data
     void publish();
     /** @}
@@ -125,8 +127,14 @@ namespace velodyne {
     long _pointCloudCounter;
     /// Use binary snappy
     bool _useBinarySnappy;
+    /// Transport hints
+    ros::TransportHints _transportHints;
     /// Transport type (tcp or udp)
     std::string _transportType;
+    /// Subscription is active
+    bool _subscriptionIsActive;
+    /// Update subscription callback timer
+    ros::Timer _timer;
     /** @}
       */
 
