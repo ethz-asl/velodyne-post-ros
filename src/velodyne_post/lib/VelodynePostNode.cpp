@@ -43,12 +43,11 @@ namespace velodyne {
 /* Constructors and Destructor                                                */
 /******************************************************************************/
 
-  VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh)
-  : _nodeHandle(nh),
-    _pointCloudCounter(0),
-    _subscriptionIsActive(true),
-    _rate(ros::Rate(0))
-  {
+  VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh) :
+      _nodeHandle(nh),
+      _pointCloudCounter(0),
+      _subscriptionIsActive(true),
+      _rate(ros::Rate(0)) {
     getParameters();
     if (_transportType == "udp")
       _transportHints = ros::TransportHints().unreliable().reliable();
@@ -58,16 +57,16 @@ namespace velodyne {
       ROS_ERROR_STREAM("Unknown transport type: " << _transportType);
     if (_useBinarySnappy)
       _velodyneBinarySnappySubscriber =
-          _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-              _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this,
-              _transportHints);
+        _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
+        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this,
+        _transportHints);
     else
       _velodyneDataPacketSubscriber =
-          _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-              _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this,
-              _transportHints);
+        _nodeHandle.subscribe(_velodyneDataPacketTopicName,
+        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this,
+        _transportHints);
     _pointCloudPublisher = _nodeHandle.advertise<sensor_msgs::PointCloud2>(
-        _pointCloudTopicName, _queueDepth);
+      _pointCloudTopicName, _queueDepth);
     _dataPackets.reserve(_numDataPackets);
     std::ifstream calibFile(_calibFileName);
     _calibration = std::make_shared<Calibration>();
@@ -116,8 +115,8 @@ namespace velodyne {
       velodyne::BinarySnappyMsgConstPtr& msg) {
     std::string uncompressedData;
     snappy::Uncompress(
-        reinterpret_cast<const char*>(msg->data.data()),
-        msg->data.size(), &uncompressedData);
+      reinterpret_cast<const char*>(msg->data.data()),
+      msg->data.size(), &uncompressedData);
     _frameId = msg->header.frame_id;
     DataPacket dataPacket;
     std::istringstream binaryStream(uncompressedData);
@@ -135,13 +134,13 @@ namespace velodyne {
       VdynePointCloud pointCloud;
       for (auto it = _dataPackets.cbegin(); it != _dataPackets.cend(); ++it) {
         Converter::toPointCloud(*it, *_calibration, pointCloud, _minDistance,
-            _maxDistance);
+          _maxDistance);
       }
       auto rosPointCloud = boost::make_shared<sensor_msgs::PointCloud>();
       rosPointCloud->header.stamp =
-          ros::Time().fromNSec(_dataPackets.front().getTimestamp()
-              + std::round((_dataPackets.back().getTimestamp() -
-                  _dataPackets.front().getTimestamp()) * 0.5));
+        ros::Time().fromNSec(_dataPackets.front().getTimestamp()
+        + std::round((_dataPackets.back().getTimestamp() -
+        _dataPackets.front().getTimestamp()) * 0.5));
       rosPointCloud->header.frame_id = _frameId;
       rosPointCloud->header.seq = _pointCloudCounter++;
       const size_t numPoints = pointCloud.getSize();
@@ -200,21 +199,21 @@ namespace velodyne {
     _nodeHandle.param<double>("sensor/min_distance", _minDistance, 0.9);
     _nodeHandle.param<double>("sensor/max_distance", _maxDistance, 120);
     _nodeHandle.param<std::string>("sensor/device_name", _deviceName,
-        "Velodyne HDL-32E");
+      "Velodyne HDL-32E");
     if (_deviceName == "Velodyne HDL-64E S2")
       _nodeHandle.param<std::string>("sensor/calibration_file", _calibFileName,
-          "conf/calib-HDL-64E.dat");
+        "conf/calib-HDL-64E.dat");
     else if (_deviceName == "Velodyne HDL-32E")
       _nodeHandle.param<std::string>("sensor/calibration_file", _calibFileName,
-          "conf/calib-HDL-32E.dat");
+        "conf/calib-HDL-32E.dat");
     else
       ROS_ERROR_STREAM("Unknown device: " << _deviceName);
     _nodeHandle.param<std::string>("ros/velodyne_binary_snappy_topic_name",
-        _velodyneBinarySnappyTopicName, "/velodyne/binary_snappy");
+      _velodyneBinarySnappyTopicName, "/velodyne/binary_snappy");
     _nodeHandle.param<std::string>("ros/velodyne_data_packet_topic_name",
-        _velodyneDataPacketTopicName, "/velodyne/data_packet");
+      _velodyneDataPacketTopicName, "/velodyne/data_packet");
     _nodeHandle.param<std::string>("ros/point_cloud_topic_name",
-        _pointCloudTopicName, "point_cloud");
+      _pointCloudTopicName, "point_cloud");
     _nodeHandle.param<bool>("ros/use_binary_snappy", _useBinarySnappy, true);
     _nodeHandle.param<int>("ros/queue_depth", _queueDepth, 100);
     _nodeHandle.param<std::string>("ros/transport_type", _transportType, "udp");
