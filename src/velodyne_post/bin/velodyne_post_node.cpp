@@ -29,11 +29,7 @@ int main(int argc, char** argv) {
   ros::NodeHandle nh("~");
   try {
     velodyne::VelodynePostNode vn(nh);
-    while (ros::ok()) {
-      vn.updatePointCloudSubscription();
-      vn.sleep();
-      vn.spinOnce();
-    }
+    vn.spin();
   }
   catch (const std::exception& e) {
     ROS_ERROR_STREAM("Exception: " << e.what());

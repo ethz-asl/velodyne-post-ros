@@ -43,190 +43,190 @@ namespace velodyne {
 /* Constructors and Destructor                                                */
 /******************************************************************************/
 
-  VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh) :
-      _nodeHandle(nh),
-      _rate(0),
-      _velodyneSubscriberIsShutDown(false),
-      _pointCloudCounter(0) {
-    getParameters();
-    if (_transportType == "udp")
-      _transportHints.unreliable().reliable();
-    else if (_transportType == "tcp")
-      _transportHints.reliable().unreliable();
-    else
-      ROS_ERROR_STREAM("Transport type not recognized.");
-    if (_useBinarySnappy)
-      _velodyneBinarySnappySubscriber =
+VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh) :
+              _nodeHandle(nh),
+              _pointCloudCounter(0) {
+  getParameters();
+  if (_transportType == "udp")
+    _transportHints = ros::TransportHints().unreliable().reliable();
+  else if (_transportType == "tcp")
+    _transportHints = ros::TransportHints().reliable().unreliable();
+  else
+    ROS_ERROR_STREAM("Unknown transport type: " << _transportType);
+  if (_useBinarySnappy)
+    _velodyneBinarySnappySubscriber =
         _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this, _transportHints);
-    else
-      _velodyneDataPacketSubscriber =
+            _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this,
+            _transportHints);
+  else
+    _velodyneDataPacketSubscriber =
         _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this, _transportHints);
-    _pointCloudPublisher = _nodeHandle.advertise<sensor_msgs::PointCloud2>(
-      _pointCloudTopicName, _queueDepth);
-    _dataPackets.reserve(_numDataPackets);
-    loadCalibrationFile();
-  }
+            _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this,
+            _transportHints);
+  _pointCloudPublisher = _nodeHandle.advertise<sensor_msgs::PointCloud2>(
+      _pointCloudTopicName, _queueDepth,
+      boost::bind(&VelodynePostNode::pointCloudSubscriberConnected, *this, _1),
+      boost::bind(&VelodynePostNode::pointCloudSubscriberDisconnected, *this, _1));
+  _dataPackets.reserve(_numDataPackets);
+}
 
-  VelodynePostNode::~VelodynePostNode() {
-  }
+VelodynePostNode::~VelodynePostNode() {
+}
 
 /******************************************************************************/
 /* Methods                                                                    */
 /******************************************************************************/
 
-  void VelodynePostNode::velodyneDataPacketCallback(const
-      velodyne::DataPacketMsgConstPtr& msg) {
-    _frameId = msg->header.frame_id;
-    DataPacket dataPacket;
-    for (size_t i = 0; i < DataPacket::mDataChunkNbr; ++i) {
-      DataPacket::DataChunk dataChunk;
-      dataChunk.mHeaderInfo = msg->dataChunks[i].headerInfo;
-      dataChunk.mRotationalInfo = msg->dataChunks[i].rotationalInfo;
-      for (size_t j = 0; j < DataPacket::DataChunk::mLasersPerPacket; ++j) {
-        DataPacket::LaserData laserData;
-        laserData.mDistance = msg->dataChunks[i].laserData[j].distance;
-        laserData.mIntensity = msg->dataChunks[i].laserData[j].intensity;
-        dataChunk.mLaserData[j] = laserData;
-      }
-      dataPacket.setDataChunk(dataChunk, i);
+void VelodynePostNode::velodyneDataPacketCallback(const
+velodyne::DataPacketMsgConstPtr& msg) {
+  _frameId = msg->header.frame_id;
+  DataPacket dataPacket;
+  for (size_t i = 0; i < DataPacket::mDataChunkNbr; ++i) {
+    DataPacket::DataChunk dataChunk;
+    dataChunk.mHeaderInfo = msg->dataChunks[i].headerInfo;
+    dataChunk.mRotationalInfo = msg->dataChunks[i].rotationalInfo;
+    for (size_t j = 0; j < DataPacket::DataChunk::mLasersPerPacket; ++j) {
+      DataPacket::LaserData laserData;
+      laserData.mDistance = msg->dataChunks[i].laserData[j].distance;
+      laserData.mIntensity = msg->dataChunks[i].laserData[j].intensity;
+      dataChunk.mLaserData[j] = laserData;
     }
-    dataPacket.setTimestamp(msg->header.stamp.toNSec());
-    dataPacket.setSpinCount(msg->spinCount);
-    dataPacket.setReserved(msg->reserved);
-    _dataPackets.push_back(dataPacket);
-    if (_dataPackets.size() == _numDataPackets) {
-      publish();
-      _dataPackets.clear();
-    }
+    dataPacket.setDataChunk(dataChunk, i);
   }
+  dataPacket.setTimestamp(msg->header.stamp.toNSec());
+  dataPacket.setSpinCount(msg->spinCount);
+  dataPacket.setReserved(msg->reserved);
+  _dataPackets.push_back(dataPacket);
+  if (_dataPackets.size() == _numDataPackets) {
+    publish();
+    _dataPackets.clear();
+  }
+}
 
-  void VelodynePostNode::velodyneBinarySnappyCallback(const
-      velodyne::BinarySnappyMsgConstPtr& msg) {
-    std::string uncompressedData;
-    snappy::Uncompress(
+void VelodynePostNode::velodyneBinarySnappyCallback(const
+velodyne::BinarySnappyMsgConstPtr& msg) {
+  std::string uncompressedData;
+  snappy::Uncompress(
       reinterpret_cast<const char*>(msg->data.data()),
       msg->data.size(), &uncompressedData);
-    _frameId = msg->header.frame_id;
-    DataPacket dataPacket;
-    std::istringstream binaryStream(uncompressedData);
-    dataPacket.readBinary(binaryStream);
-    dataPacket.setTimestamp(msg->header.stamp.toNSec());
-    _dataPackets.push_back(dataPacket);
-    if (_dataPackets.size() == _numDataPackets) {
-      publish();
-      _dataPackets.clear();
-    }
+  _frameId = msg->header.frame_id;
+  DataPacket dataPacket;
+  std::istringstream binaryStream(uncompressedData);
+  dataPacket.readBinary(binaryStream);
+  dataPacket.setTimestamp(msg->header.stamp.toNSec());
+  _dataPackets.push_back(dataPacket);
+  if (_dataPackets.size() == _numDataPackets) {
+    publish();
+    _dataPackets.clear();
   }
+}
 
-  void VelodynePostNode::loadCalibrationFile() {
-    std::ifstream calibFile(_calibFileName);
-    _calibration = std::make_shared<Calibration>();
-    try {
-      calibFile >> *_calibration;
-    }
-    catch (const IOException& e) {
-      ROS_WARN_STREAM("IOException: " << e.what());
-    }
-  }
-
-  void VelodynePostNode::publish() {
-    if (_pointCloudPublisher.getNumSubscribers() > 0) {
-      VdynePointCloud pointCloud;
-      for (auto it = _dataPackets.cbegin(); it != _dataPackets.cend(); ++it) {
-        Converter::toPointCloud(*it, *_calibration, pointCloud, _minDistance,
+void VelodynePostNode::publish() {
+  if (_pointCloudPublisher.getNumSubscribers() > 0) {
+    VdynePointCloud pointCloud;
+    for (auto it = _dataPackets.cbegin(); it != _dataPackets.cend(); ++it) {
+      Converter::toPointCloud(*it, *_calibration, pointCloud, _minDistance,
           _maxDistance);
-      }
-      auto rosPointCloud = boost::make_shared<sensor_msgs::PointCloud>();
-      rosPointCloud->header.stamp =
-        ros::Time().fromNSec(_dataPackets.front().getTimestamp()
-        + std::round((_dataPackets.back().getTimestamp() -
-        _dataPackets.front().getTimestamp()) * 0.5));
-      rosPointCloud->header.frame_id = _frameId;
-      rosPointCloud->header.seq = _pointCloudCounter++;
-      const size_t numPoints = pointCloud.getSize();
-      rosPointCloud->points.reserve(numPoints);
-      for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
-          ++it) {
-        geometry_msgs::Point32 rosPoint;
-        rosPoint.x = it->mX;
-        rosPoint.y = it->mY;
-        rosPoint.z = it->mZ;
-        rosPointCloud->points.push_back(rosPoint);
-      }
-      auto rosPointCloud2 = boost::make_shared<sensor_msgs::PointCloud2>();
-      convertPointCloudToPointCloud2 (*rosPointCloud, *rosPointCloud2);
-      _pointCloudPublisher.publish(rosPointCloud2);
     }
+    auto rosPointCloud = boost::make_shared<sensor_msgs::PointCloud>();
+    rosPointCloud->header.stamp =
+        ros::Time().fromNSec(_dataPackets.front().getTimestamp()
+            + std::round((_dataPackets.back().getTimestamp() -
+                _dataPackets.front().getTimestamp()) * 0.5));
+    rosPointCloud->header.frame_id = _frameId;
+    rosPointCloud->header.seq = _pointCloudCounter++;
+    const size_t numPoints = pointCloud.getSize();
+    rosPointCloud->points.reserve(numPoints);
+    for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
+        ++it) {
+      geometry_msgs::Point32 rosPoint;
+      rosPoint.x = it->mX;
+      rosPoint.y = it->mY;
+      rosPoint.z = it->mZ;
+      rosPointCloud->points.push_back(rosPoint);
+    }
+    auto rosPointCloud2 = boost::make_shared<sensor_msgs::PointCloud2>();
+    convertPointCloudToPointCloud2 (*rosPointCloud, *rosPointCloud2);
+    _pointCloudPublisher.publish(rosPointCloud2);
   }
+}
 
-  void VelodynePostNode::spinOnce() {
+void VelodynePostNode::spin() {
+  std::ifstream calibFile(_calibFileName);
+  _calibration = std::make_shared<Calibration>();
+  try {
+    calibFile >> *_calibration;
+  }
+  catch (const IOException& e) {
+    ROS_WARN_STREAM("IOException: " << e.what());
+  }
+  //    ros::spin();
+
+  ros::Rate rate(1);
+  while(ros::ok())
+  {
+    ROS_INFO_STREAM(_pointCloudPublisher.getNumSubscribers());
+    rate.sleep();
     ros::spinOnce();
   }
+}
 
-  void VelodynePostNode::updatePointCloudSubscription() {
-    if (_velodyneSubscriberIsShutDown) {
-      // subscribe if subscribers are around
-      if (_pointCloudPublisher.getNumSubscribers() > 0u) {
-        if (_useBinarySnappy) {
-          _velodyneBinarySnappySubscriber =
-            _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-            _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this, _transportHints);
-        } else {
-          _velodyneDataPacketSubscriber =
-            _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-            _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this, _transportHints);
-        }
-        _velodyneSubscriberIsShutDown = false;
-      }
+void VelodynePostNode::pointCloudSubscriberConnected(const ros::SingleSubscriberPublisher& pub) {
+  // subscribe if first subscriber connected
+  if (_pointCloudPublisher.getNumSubscribers() == 1u) {
+    if (_useBinarySnappy) {
+      _velodyneBinarySnappySubscriber =
+          _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
+              _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this,
+              _transportHints);
     } else {
-      // unsubscribe if no subscribers are around
-      if (_pointCloudPublisher.getNumSubscribers() == 0u) {
-        if (_useBinarySnappy) {
-          _velodyneBinarySnappySubscriber.shutdown();
-        } else {
-          _velodyneDataPacketSubscriber.shutdown();
-        }
-        _velodyneSubscriberIsShutDown = true;
-      }
+      _velodyneDataPacketSubscriber =
+          _nodeHandle.subscribe(_velodyneDataPacketTopicName,
+              _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this,
+              _transportHints);
     }
+    ROS_INFO_STREAM("subscriber connected: " << _pointCloudPublisher.getNumSubscribers());
   }
+}
 
-  void VelodynePostNode::sleep() {
-    _rate.sleep();
+void VelodynePostNode::pointCloudSubscriberDisconnected(const ros::SingleSubscriberPublisher& pub) {
+  // unsubscribe if no subscriber is connected anymore
+  if (_pointCloudPublisher.getNumSubscribers() == 0u) {
+    if (_useBinarySnappy) {
+      _velodyneBinarySnappySubscriber.shutdown();
+    } else {
+      _velodyneDataPacketSubscriber.shutdown();
+    }
+    ROS_INFO_STREAM("subscriber shut down: " << _pointCloudPublisher.getNumSubscribers());
   }
+}
 
-  void VelodynePostNode::getParameters() {
-    _nodeHandle.param<double>("sensor/min_distance", _minDistance, 0.9);
-    _nodeHandle.param<double>("sensor/max_distance", _maxDistance, 120);
-    _nodeHandle.param<std::string>("sensor/device_name", _deviceName,
+void VelodynePostNode::getParameters() {
+  _nodeHandle.param<double>("sensor/min_distance", _minDistance, 0.9);
+  _nodeHandle.param<double>("sensor/max_distance", _maxDistance, 120);
+  _nodeHandle.param<std::string>("sensor/device_name", _deviceName,
       "Velodyne HDL-32E");
-    if (_deviceName == "Velodyne HDL-64E S2")
-      _nodeHandle.param<std::string>("sensor/calibration_file", _calibFileName,
+  if (_deviceName == "Velodyne HDL-64E S2")
+    _nodeHandle.param<std::string>("sensor/calibration_file", _calibFileName,
         "conf/calib-HDL-64E.dat");
-    else if (_deviceName == "Velodyne HDL-32E")
-      _nodeHandle.param<std::string>("sensor/calibration_file", _calibFileName,
+  else if (_deviceName == "Velodyne HDL-32E")
+    _nodeHandle.param<std::string>("sensor/calibration_file", _calibFileName,
         "conf/calib-HDL-32E.dat");
-    else
-      ROS_ERROR_STREAM("Unknown device: " << _deviceName);
-    _nodeHandle.param<std::string>("ros/velodyne_binary_snappy_topic_name",
+  else
+    ROS_ERROR_STREAM("Unknown device: " << _deviceName);
+  _nodeHandle.param<std::string>("ros/velodyne_binary_snappy_topic_name",
       _velodyneBinarySnappyTopicName, "/velodyne/binary_snappy");
-    _nodeHandle.param<std::string>("ros/velodyne_data_packet_topic_name",
+  _nodeHandle.param<std::string>("ros/velodyne_data_packet_topic_name",
       _velodyneDataPacketTopicName, "/velodyne/data_packet");
-    _nodeHandle.param<std::string>("ros/point_cloud_topic_name",
+  _nodeHandle.param<std::string>("ros/point_cloud_topic_name",
       _pointCloudTopicName, "point_cloud");
-    _nodeHandle.param<bool>("ros/use_binary_snappy", _useBinarySnappy, true);
-    _nodeHandle.param<int>("ros/queue_depth", _queueDepth, 100);
-    _nodeHandle.param<std::string>("ros/transport_type", _transportType, "udp");
-    if (_deviceName == "Velodyne HDL-64E S2")
-      _nodeHandle.param<int>("ros/num_data_packets", _numDataPackets, 348);
-    else if (_deviceName == "Velodyne HDL-32E")
-      _nodeHandle.param<int>("ros/num_data_packets", _numDataPackets, 174);
-
-    double subscriberUpdateFrequency;
-    _nodeHandle.param<double>("ros/subscriber_update_frequency", subscriberUpdateFrequency, 10);
-    _rate = ros::Rate(subscriberUpdateFrequency);
-  }
+  _nodeHandle.param<bool>("ros/use_binary_snappy", _useBinarySnappy, true);
+  _nodeHandle.param<int>("ros/queue_depth", _queueDepth, 100);
+  _nodeHandle.param<std::string>("ros/transport_type", _transportType, "udp");
+  if (_deviceName == "Velodyne HDL-64E S2")
+    _nodeHandle.param<int>("ros/num_data_packets", _numDataPackets, 348);
+  else if (_deviceName == "Velodyne HDL-32E")
+    _nodeHandle.param<int>("ros/num_data_packets", _numDataPackets, 174);
+}
 
 }

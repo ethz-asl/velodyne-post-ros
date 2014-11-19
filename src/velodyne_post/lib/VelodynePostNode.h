@@ -48,14 +48,14 @@ namespace velodyne {
       */
     /// Constructor
     VelodynePostNode(const ros::NodeHandle& nh);
-    /// Copy constructor
-    VelodynePostNode(const VelodynePostNode& other) = delete;
-    /// Copy assignment operator
-    VelodynePostNode& operator = (const VelodynePostNode& other) = delete;
-    /// Move constructor
-    VelodynePostNode(VelodynePostNode&& other) = delete;
-    /// Move assignment operator
-    VelodynePostNode& operator = (VelodynePostNode&& other) = delete;
+//    /// Copy constructor
+//    VelodynePostNode(const VelodynePostNode& other) = delete;
+//    /// Copy assignment operator
+//    VelodynePostNode& operator = (const VelodynePostNode& other) = delete;
+//    /// Move constructor
+//    VelodynePostNode(VelodynePostNode&& other) = delete;
+//    /// Move assignment operator
+//    VelodynePostNode& operator = (VelodynePostNode&& other) = delete;
     /// Destructor
     virtual ~VelodynePostNode();
     /** @}
@@ -64,12 +64,8 @@ namespace velodyne {
     /** \name Methods
       @{
       */
-    /// Update the subscription of the velodyne point cloud (subscribe only if there is a subscriber to the VelodynePostNode output)
-    void updatePointCloudSubscription();
-    /// Sleep to achieve desired subscription updater rate
-    void sleep();
-    /// Spin once
-    void spinOnce();
+    /// Spin
+    void spin();
     /** @}
       */
 
@@ -85,8 +81,10 @@ namespace velodyne {
       msg);
     /// Retrieves parameters
     void getParameters();
-    /// Load calibration file
-    void loadCalibrationFile();
+    /// Callback when a new point cloud subscriber connects
+    void pointCloudSubscriberConnected(const ros::SingleSubscriberPublisher& pub);
+    /// Callback when a point cloud subscriber disconnects
+    void pointCloudSubscriberDisconnected(const ros::SingleSubscriberPublisher& pub);
     /// Publishes the currently stored data
     void publish();
     /** @}
@@ -97,10 +95,6 @@ namespace velodyne {
       */
     /// ROS node handle
     ros::NodeHandle _nodeHandle;
-    /// Rate
-    ros::Rate _rate;
-    /// Velodyne subscriber is currently shut down
-    bool _velodyneSubscriberIsShutDown;
     /// Velodyne binary snappy subscriber
     ros::Subscriber _velodyneBinarySnappySubscriber;
     /// Velodyne data packet subscriber

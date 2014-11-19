@@ -1,3 +1,9 @@
+velodyne-post-ros (0.1-15) precise; urgency=low
+
+  * merging Remo's feature about transport hints
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Tue, 18 Nov 2014 17:55:35 +0100
+
 velodyne-post-ros (0.1-11) precise; urgency=low
 
   * changing timestamps from double to integer 
