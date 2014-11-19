@@ -1,3 +1,9 @@
+velodyne-post-ros (0.1-22) precise; urgency=low
+
+  * merging Remo's feature for subscribing on demand
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Wed, 19 Nov 2014 15:53:42 +0100
+
 velodyne-post-ros (0.1-15) precise; urgency=low
 
   * merging Remo's feature about transport hints

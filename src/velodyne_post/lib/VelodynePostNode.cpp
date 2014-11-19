@@ -45,8 +45,8 @@ namespace velodyne {
 
   VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh) :
       _nodeHandle(nh),
-      _pointCloudCounter(0),
-      _subscriptionIsActive(true) {
+      _pointCloudCounter(0l),
+      _subscriptionIsActive(false) {
     getParameters();
     if (_transportType == "udp")
       _transportHints = ros::TransportHints().unreliable().reliable();
@@ -54,16 +54,6 @@ namespace velodyne {
       _transportHints = ros::TransportHints().reliable().unreliable();
     else
       ROS_ERROR_STREAM("Unknown transport type: " << _transportType);
-    if (_useBinarySnappy)
-      _velodyneBinarySnappySubscriber =
-        _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this,
-        _transportHints);
-    else
-      _velodyneDataPacketSubscriber =
-        _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this,
-        _transportHints);
     _pointCloudPublisher = _nodeHandle.advertise<sensor_msgs::PointCloud2>(
       _pointCloudTopicName, _queueDepth);
     _dataPackets.reserve(_numDataPackets);
@@ -96,7 +86,7 @@ namespace velodyne {
     dataPacket.setSpinCount(msg->spinCount);
     dataPacket.setReserved(msg->reserved);
     _dataPackets.push_back(dataPacket);
-    if (_dataPackets.size() == _numDataPackets) {
+    if (_dataPackets.size() == static_cast<size_t>(_numDataPackets)) {
       publish();
       _dataPackets.clear();
     }
@@ -114,40 +104,39 @@ namespace velodyne {
     dataPacket.readBinary(binaryStream);
     dataPacket.setTimestamp(msg->header.stamp.toNSec());
     _dataPackets.push_back(dataPacket);
-    if (_dataPackets.size() == _numDataPackets) {
+    if (_dataPackets.size() == static_cast<size_t>(_numDataPackets)) {
       publish();
       _dataPackets.clear();
     }
   }
 
   void VelodynePostNode::publish() {
-    if (_pointCloudPublisher.getNumSubscribers() > 0u) {
-      VdynePointCloud pointCloud;
-      for (auto it = _dataPackets.cbegin(); it != _dataPackets.cend(); ++it) {
-        Converter::toPointCloud(*it, *_calibration, pointCloud, _minDistance,
-          _maxDistance);
-      }
-      auto rosPointCloud = boost::make_shared<sensor_msgs::PointCloud>();
-      rosPointCloud->header.stamp =
-        ros::Time().fromNSec(_dataPackets.front().getTimestamp()
-        + std::round((_dataPackets.back().getTimestamp() -
-        _dataPackets.front().getTimestamp()) * 0.5));
-      rosPointCloud->header.frame_id = _frameId;
-      rosPointCloud->header.seq = _pointCloudCounter++;
-      const size_t numPoints = pointCloud.getSize();
-      rosPointCloud->points.reserve(numPoints);
-      for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
-          ++it) {
-        geometry_msgs::Point32 rosPoint;
-        rosPoint.x = it->mX;
-        rosPoint.y = it->mY;
-        rosPoint.z = it->mZ;
-        rosPointCloud->points.push_back(rosPoint);
-      }
-      auto rosPointCloud2 = boost::make_shared<sensor_msgs::PointCloud2>();
-      convertPointCloudToPointCloud2 (*rosPointCloud, *rosPointCloud2);
-      _pointCloudPublisher.publish(rosPointCloud2);
+    if (_pointCloudPublisher.getNumSubscribers() == 0u)
+      return;
+    VdynePointCloud pointCloud;
+    for (auto it = _dataPackets.cbegin(); it != _dataPackets.cend(); ++it)
+      Converter::toPointCloud(*it, *_calibration, pointCloud, _minDistance,
+        _maxDistance);
+    auto rosPointCloud = boost::make_shared<sensor_msgs::PointCloud>();
+    rosPointCloud->header.stamp =
+      ros::Time().fromNSec(_dataPackets.front().getTimestamp()
+      + std::round((_dataPackets.back().getTimestamp() -
+      _dataPackets.front().getTimestamp()) * 0.5));
+    rosPointCloud->header.frame_id = _frameId;
+    rosPointCloud->header.seq = _pointCloudCounter++;
+    const size_t numPoints = pointCloud.getSize();
+    rosPointCloud->points.reserve(numPoints);
+    for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
+        ++it) {
+      geometry_msgs::Point32 rosPoint;
+      rosPoint.x = it->mX;
+      rosPoint.y = it->mY;
+      rosPoint.z = it->mZ;
+      rosPointCloud->points.push_back(rosPoint);
     }
+    auto rosPointCloud2 = boost::make_shared<sensor_msgs::PointCloud2>();
+    convertPointCloudToPointCloud2 (*rosPointCloud, *rosPointCloud2);
+    _pointCloudPublisher.publish(rosPointCloud2);
   }
 
   void VelodynePostNode::spin() {
@@ -164,7 +153,7 @@ namespace velodyne {
 
   void VelodynePostNode::getParameters() {
     _nodeHandle.param<double>("sensor/min_distance", _minDistance, 0.9);
-    _nodeHandle.param<double>("sensor/max_distance", _maxDistance, 120);
+    _nodeHandle.param<double>("sensor/max_distance", _maxDistance, 120.0);
     _nodeHandle.param<std::string>("sensor/device_name", _deviceName,
       "Velodyne HDL-32E");
     if (_deviceName == "Velodyne HDL-64E S2")
@@ -190,36 +179,39 @@ namespace velodyne {
       _nodeHandle.param<int>("ros/num_data_packets", _numDataPackets, 174);
     double rate;
     _nodeHandle.param<double>("ros/subscription_updater_rate", rate, 1.0);
-    _timer = _nodeHandle.createTimer(ros::Duration(1.0/rate),
+    _timer = _nodeHandle.createTimer(ros::Duration(1.0 / rate),
       &VelodynePostNode::updateSubscription, this);
   }
 
-  void VelodynePostNode::updateSubscription(const ros::TimerEvent& event) {
-    if (_subscriptionIsActive) {
-      if (_pointCloudPublisher.getNumSubscribers() == 0u) {
-        if (_useBinarySnappy) {
-          _velodyneBinarySnappySubscriber.shutdown();
-        } else {
-          _velodyneDataPacketSubscriber.shutdown();
-        }
-        _subscriptionIsActive = false;
-      }
-    } else {
-      if (_pointCloudPublisher.getNumSubscribers() > 0u) {
-        if (_useBinarySnappy) {
-          _velodyneBinarySnappySubscriber =
-              _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-                  _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback,
-                  this, _transportHints);
-        } else {
-          _velodyneDataPacketSubscriber =
-              _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-                  _queueDepth, &VelodynePostNode::velodyneDataPacketCallback,
-                  this, _transportHints);
-        }
-        _subscriptionIsActive = true;
-      }
-    }
+  void VelodynePostNode::updateSubscription(const ros::TimerEvent& /*event*/) {
+    if (_subscriptionIsActive &&
+        _pointCloudPublisher.getNumSubscribers() == 0u)
+      shutdownSubscribers();
+    else if (!_subscriptionIsActive &&
+        _pointCloudPublisher.getNumSubscribers() > 0u)
+      initSubscribers();
+  }
+
+  void VelodynePostNode::initSubscribers() {
+    if (_useBinarySnappy)
+      _velodyneBinarySnappySubscriber =
+        _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
+        _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback, this,
+        _transportHints);
+    else
+      _velodyneDataPacketSubscriber =
+        _nodeHandle.subscribe(_velodyneDataPacketTopicName,
+        _queueDepth, &VelodynePostNode::velodyneDataPacketCallback, this,
+        _transportHints);
+    _subscriptionIsActive = true;
+  }
+
+  void VelodynePostNode::shutdownSubscribers() {
+    if (_useBinarySnappy)
+      _velodyneBinarySnappySubscriber.shutdown();
+    else
+      _velodyneDataPacketSubscriber.shutdown();
+    _subscriptionIsActive = false;
   }
 
 }

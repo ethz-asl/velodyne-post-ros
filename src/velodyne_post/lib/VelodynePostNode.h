@@ -85,6 +85,10 @@ namespace velodyne {
     void updateSubscription(const ros::TimerEvent& event);
     /// Publishes the currently stored data
     void publish();
+    /// Inits the subscribers
+    void initSubscribers();
+    /// Shutdowns the subscribers
+    void shutdownSubscribers();
     /** @}
       */
 
@@ -131,7 +135,7 @@ namespace velodyne {
     ros::TransportHints _transportHints;
     /// Transport type (tcp or udp)
     std::string _transportType;
-    /// Subscription is active
+    /// Flag for active subscribtions
     bool _subscriptionIsActive;
     /// Update subscription callback timer
     ros::Timer _timer;
