@@ -64,12 +64,8 @@ namespace velodyne {
     /** \name Methods
       @{
       */
-    /// Update subscription (subscribe only when subscriber is around)
-    void updateSubscription();
-    /// Sleep to achieve desired rate
-    void sleep();
-    /// Spin once
-    void spinOnce();
+    /// Spin
+    void spin();
     /** @}
       */
 
@@ -85,6 +81,8 @@ namespace velodyne {
       msg);
     /// Retrieves parameters
     void getParameters();
+    /// Update subscription (subscribe only when subscriber is around)
+    void updateSubscription(const ros::TimerEvent& event);
     /// Publishes the currently stored data
     void publish();
     /** @}
@@ -135,8 +133,8 @@ namespace velodyne {
     std::string _transportType;
     /// Subscription is active
     bool _subscriptionIsActive;
-    /// Node running rate
-    ros::Rate _rate;
+    /// Update subscription callback timer
+    ros::Timer _timer;
     /** @}
       */
 

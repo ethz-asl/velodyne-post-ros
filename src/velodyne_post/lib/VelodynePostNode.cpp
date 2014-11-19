@@ -46,8 +46,7 @@ namespace velodyne {
   VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh) :
       _nodeHandle(nh),
       _pointCloudCounter(0),
-      _subscriptionIsActive(true),
-      _rate(ros::Rate(0)) {
+      _subscriptionIsActive(true) {
     getParameters();
     if (_transportType == "udp")
       _transportHints = ros::TransportHints().unreliable().reliable();
@@ -159,40 +158,8 @@ namespace velodyne {
     }
   }
 
-  void VelodynePostNode::updateSubscription() {
-    if (_subscriptionIsActive) {
-      if (_pointCloudPublisher.getNumSubscribers() == 0u) {
-        if (_useBinarySnappy) {
-          _velodyneBinarySnappySubscriber.shutdown();
-        } else {
-          _velodyneDataPacketSubscriber.shutdown();
-        }
-        _subscriptionIsActive = false;
-      }
-    } else {
-      if (_pointCloudPublisher.getNumSubscribers() > 0u) {
-        if (_useBinarySnappy) {
-          _velodyneBinarySnappySubscriber =
-              _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
-                  _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback,
-                  this, _transportHints);
-        } else {
-          _velodyneDataPacketSubscriber =
-              _nodeHandle.subscribe(_velodyneDataPacketTopicName,
-                  _queueDepth, &VelodynePostNode::velodyneDataPacketCallback,
-                  this, _transportHints);
-        }
-        _subscriptionIsActive = true;
-      }
-    }
-  }
-
-  void VelodynePostNode::sleep() {
-    _rate.sleep();
-  }
-
-  void VelodynePostNode::spinOnce() {
-    ros::spinOnce();
+  void VelodynePostNode::spin() {
+    ros::spin();
   }
 
   void VelodynePostNode::getParameters() {
@@ -223,7 +190,36 @@ namespace velodyne {
       _nodeHandle.param<int>("ros/num_data_packets", _numDataPackets, 174);
     double rate;
     _nodeHandle.param<double>("ros/subscription_updater_rate", rate, 1.0);
-    _rate = ros::Rate(rate);
+    _timer = _nodeHandle.createTimer(ros::Duration(1.0/rate),
+      &VelodynePostNode::updateSubscription, this);
+  }
+
+  void VelodynePostNode::updateSubscription(const ros::TimerEvent& event) {
+    if (_subscriptionIsActive) {
+      if (_pointCloudPublisher.getNumSubscribers() == 0u) {
+        if (_useBinarySnappy) {
+          _velodyneBinarySnappySubscriber.shutdown();
+        } else {
+          _velodyneDataPacketSubscriber.shutdown();
+        }
+        _subscriptionIsActive = false;
+      }
+    } else {
+      if (_pointCloudPublisher.getNumSubscribers() > 0u) {
+        if (_useBinarySnappy) {
+          _velodyneBinarySnappySubscriber =
+              _nodeHandle.subscribe(_velodyneBinarySnappyTopicName,
+                  _queueDepth, &VelodynePostNode::velodyneBinarySnappyCallback,
+                  this, _transportHints);
+        } else {
+          _velodyneDataPacketSubscriber =
+              _nodeHandle.subscribe(_velodyneDataPacketTopicName,
+                  _queueDepth, &VelodynePostNode::velodyneDataPacketCallback,
+                  this, _transportHints);
+        }
+        _subscriptionIsActive = true;
+      }
+    }
   }
 
 }

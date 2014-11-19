@@ -30,9 +30,7 @@ int main(int argc, char** argv) {
   try {
     velodyne::VelodynePostNode vn(nh);
     while (ros::ok()) {
-      vn.updateSubscription();
-      vn.sleep();
-      vn.spinOnce();
+      vn.spin();
     }
   }
   catch (const std::exception& e) {
