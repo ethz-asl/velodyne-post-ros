@@ -43,11 +43,11 @@ namespace velodyne {
 /* Constructors and Destructor                                                */
 /******************************************************************************/
 
-VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh) :
-              _nodeHandle(nh),
-              _pointCloudCounter(0),
-              _subscriptionIsActive(true),
-              _rate(ros::Rate(0))
+VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh)
+: _nodeHandle(nh),
+  _pointCloudCounter(0),
+  _subscriptionIsActive(true),
+  _rate(ros::Rate(0))
 {
   getParameters();
   if (_transportType == "udp")
@@ -86,8 +86,7 @@ VelodynePostNode::~VelodynePostNode() {
 /* Methods                                                                    */
 /******************************************************************************/
 
-void VelodynePostNode::velodyneDataPacketCallback(const
-velodyne::DataPacketMsgConstPtr& msg) {
+void VelodynePostNode::velodyneDataPacketCallback(const velodyne::DataPacketMsgConstPtr& msg) {
   _frameId = msg->header.frame_id;
   DataPacket dataPacket;
   for (size_t i = 0; i < DataPacket::mDataChunkNbr; ++i) {
@@ -112,8 +111,7 @@ velodyne::DataPacketMsgConstPtr& msg) {
   }
 }
 
-void VelodynePostNode::velodyneBinarySnappyCallback(const
-velodyne::BinarySnappyMsgConstPtr& msg) {
+void VelodynePostNode::velodyneBinarySnappyCallback(const velodyne::BinarySnappyMsgConstPtr& msg) {
   std::string uncompressedData;
   snappy::Uncompress(
       reinterpret_cast<const char*>(msg->data.data()),
@@ -146,8 +144,7 @@ void VelodynePostNode::publish() {
     rosPointCloud->header.seq = _pointCloudCounter++;
     const size_t numPoints = pointCloud.getSize();
     rosPointCloud->points.reserve(numPoints);
-    for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
-        ++it) {
+    for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd(); ++it) {
       geometry_msgs::Point32 rosPoint;
       rosPoint.x = it->mX;
       rosPoint.y = it->mY;
