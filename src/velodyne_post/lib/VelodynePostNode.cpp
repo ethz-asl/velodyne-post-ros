@@ -67,14 +67,6 @@ namespace velodyne {
     _pointCloudPublisher = _nodeHandle.advertise<sensor_msgs::PointCloud2>(
       _pointCloudTopicName, _queueDepth);
     _dataPackets.reserve(_numDataPackets);
-    std::ifstream calibFile(_calibFileName);
-    _calibration = std::make_shared<Calibration>();
-    try {
-      calibFile >> *_calibration;
-    }
-    catch (const IOException& e) {
-      ROS_WARN_STREAM("IOException: " << e.what());
-    }
   }
 
   VelodynePostNode::~VelodynePostNode() {
@@ -159,6 +151,14 @@ namespace velodyne {
   }
 
   void VelodynePostNode::spin() {
+    std::ifstream calibFile(_calibFileName);
+    _calibration = std::make_shared<Calibration>();
+    try {
+      calibFile >> *_calibration;
+    }
+    catch (const IOException& e) {
+      ROS_WARN_STREAM("IOException: " << e.what());
+    }
     ros::spin();
   }
 
