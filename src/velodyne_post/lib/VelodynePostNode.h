@@ -127,8 +127,6 @@ namespace velodyne {
     std::string _pointCloudTopicName;
     /// Frame ID
     std::string _frameId;
-    /// Point cloud counter
-    long _pointCloudCounter;
     /// Use binary snappy
     bool _useBinarySnappy;
     /// Transport hints

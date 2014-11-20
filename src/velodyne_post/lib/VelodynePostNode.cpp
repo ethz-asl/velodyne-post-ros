@@ -22,6 +22,7 @@
 #include <iomanip>
 #include <cstring>
 #include <cmath>
+#include <fstream>
 
 #include <boost/make_shared.hpp>
 
@@ -45,9 +46,16 @@ namespace velodyne {
 
   VelodynePostNode::VelodynePostNode(const ros::NodeHandle& nh) :
       _nodeHandle(nh),
-      _pointCloudCounter(0l),
       _subscriptionIsActive(false) {
     getParameters();
+    std::ifstream calibFile(_calibFileName);
+    _calibration = std::make_shared<Calibration>();
+    try {
+      calibFile >> *_calibration;
+    }
+    catch (const IOException& e) {
+      ROS_WARN_STREAM("IOException: " << e.what());
+    }
     if (_transportType == "udp")
       _transportHints = ros::TransportHints().unreliable().reliable();
     else if (_transportType == "tcp")
@@ -111,7 +119,7 @@ namespace velodyne {
   }
 
   void VelodynePostNode::publish() {
-    if (_pointCloudPublisher.getNumSubscribers() == 0u)
+    if (_pointCloudPublisher.getNumSubscribers() == 0)
       return;
     VdynePointCloud pointCloud;
     for (auto it = _dataPackets.cbegin(); it != _dataPackets.cend(); ++it)
@@ -123,7 +131,6 @@ namespace velodyne {
       + std::round((_dataPackets.back().getTimestamp() -
       _dataPackets.front().getTimestamp()) * 0.5));
     rosPointCloud->header.frame_id = _frameId;
-    rosPointCloud->header.seq = _pointCloudCounter++;
     const size_t numPoints = pointCloud.getSize();
     rosPointCloud->points.reserve(numPoints);
     for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
@@ -140,14 +147,6 @@ namespace velodyne {
   }
 
   void VelodynePostNode::spin() {
-    std::ifstream calibFile(_calibFileName);
-    _calibration = std::make_shared<Calibration>();
-    try {
-      calibFile >> *_calibration;
-    }
-    catch (const IOException& e) {
-      ROS_WARN_STREAM("IOException: " << e.what());
-    }
     ros::spin();
   }
 
@@ -185,10 +184,10 @@ namespace velodyne {
 
   void VelodynePostNode::updateSubscription(const ros::TimerEvent& /*event*/) {
     if (_subscriptionIsActive &&
-        _pointCloudPublisher.getNumSubscribers() == 0u)
+        _pointCloudPublisher.getNumSubscribers() == 0)
       shutdownSubscribers();
     else if (!_subscriptionIsActive &&
-        _pointCloudPublisher.getNumSubscribers() > 0u)
+        _pointCloudPublisher.getNumSubscribers() > 0)
       initSubscribers();
   }
 

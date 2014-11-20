@@ -1,3 +1,9 @@
+velodyne-post-ros (0.1-23) precise; urgency=low
+
+  * reverting some ugly changes with suffixes on literals 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Thu, 20 Nov 2014 13:15:20 +0100
+
 velodyne-post-ros (0.1-22) precise; urgency=low
 
   * merging Remo's feature for subscribing on demand
