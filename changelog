@@ -1,3 +1,9 @@
+velodyne-post-ros (0.1-24) precise; urgency=low
+
+  * correcting linking error with old libvelodyne 
+
+ -- Jerome Maye <jerome.maye@mavt.ethz.ch>  Thu, 20 Nov 2014 17:38:09 +0100
+
 velodyne-post-ros (0.1-23) precise; urgency=low
 
   * reverting some ugly changes with suffixes on literals 
