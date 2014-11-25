@@ -131,15 +131,19 @@ namespace velodyne {
       + std::round((_dataPackets.back().getTimestamp() -
       _dataPackets.front().getTimestamp()) * 0.5));
     rosPointCloud->header.frame_id = _frameId;
-    const size_t numPoints = pointCloud.getSize();
+    const auto numPoints = pointCloud.getSize();
     rosPointCloud->points.reserve(numPoints);
-    for (auto it = pointCloud.getPointBegin(); it != pointCloud.getPointEnd();
-        ++it) {
+    rosPointCloud->channels.resize(1);
+    rosPointCloud->channels[0].name = "intensity";
+    rosPointCloud->channels[0].values.reserve(numPoints);
+    const auto& points = pointCloud.getPoints();
+    for (const auto& point : points) {
       geometry_msgs::Point32 rosPoint;
-      rosPoint.x = it->mX;
-      rosPoint.y = it->mY;
-      rosPoint.z = it->mZ;
+      rosPoint.x = point.mX;
+      rosPoint.y = point.mY;
+      rosPoint.z = point.mZ;
       rosPointCloud->points.push_back(rosPoint);
+      rosPointCloud->channels[0].values.push_back(point.mIntensity);
     }
     auto rosPointCloud2 = boost::make_shared<sensor_msgs::PointCloud2>();
     convertPointCloudToPointCloud2 (*rosPointCloud, *rosPointCloud2);
