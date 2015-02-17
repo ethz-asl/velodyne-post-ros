@@ -30,7 +30,7 @@
 #include <sensor_msgs/PointCloud.h>
 #include <sensor_msgs/point_cloud_conversion.h>
 
-#include <libsnappy/snappy.h>
+#include <snappy.h>
 
 #include <libvelodyne/sensor/DataPacket.h>
 #include <libvelodyne/sensor/Calibration.h>
