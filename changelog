@@ -1,3 +1,13 @@
+velodyne-post-ros (0.1-26) precise; urgency=low
+
+  * Fixed project information
+  * Removed system-wide ROS configuration file
+  * Removed configuration destination
+  * Adapted configuration file path in launch files
+  * Linking against system libsnappy1
+
+ -- Ralf Kaestner <ralf.kaestner@gmail.com>  Tue, 17 Feb 2015 15:40:00 +0100
+
 velodyne-post-ros (0.1-25) precise; urgency=low
 
   * linking against new libvelodyne 
